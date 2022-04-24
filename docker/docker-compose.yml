@@ -1,0 +1,34 @@
+version: '3'
+services:
+  mariadb:
+    build:
+      context: ${DATABASE_BUILD_PATH}
+      args:
+        - DATABASE_IMAGE_VERSION=${DATABASE_IMAGE_VERSION}
+    container_name: "${COMPOSE_PROJECT_NAME}-database"
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DATABASE}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASS}
+      TESTING_DATABASE: ${TESTING_DATABASE}
+      TZ: ${TIME_ZONE}
+    volumes:
+      - ${DATABASE_CONF}:/etc/mysql/conf.d
+      - ${DATABASE_DATA}:/var/lib/mysql
+      - ${DATABASE_INIT}:/docker-entrypoint-initdb.d
+    ports:
+      - ${DATABASE_PORT}:3306
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:${PHPMYADMIN_VERSION}
+    container_name: "${COMPOSE_PROJECT_NAME}-phpmyadmin"
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mariadb
+      - PMA_USER=root
+      - PMA_PASSWORD=${DATABASE_ROOT_PASS}
+    depends_on:
+      - mariadb
+    ports:
+      - ${PHPMYADMIN_PORT}:80
