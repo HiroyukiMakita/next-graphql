@@ -1,4 +1,4 @@
-import { prisma } from './prismaClient';
+import { prisma } from '../lib/prisma';
 import { faker } from '@faker-js/faker';
 
 const main = async () => {
