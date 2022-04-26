@@ -6,7 +6,7 @@ const main = async () => {
     data: [...Array(10)].map((_) => {
       return {
         name: faker.name.findName(),
-        price: faker.random.alphaNumeric(50),
+        price: String(faker.datatype.number({ min: 99, max: 99999 })),
         remarks: faker.random.words(),
       };
     }),
