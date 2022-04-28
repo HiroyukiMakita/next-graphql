@@ -1,4 +1,4 @@
-import { gql, useQuery } from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 import type { NextPage } from 'next';
 import { Layout } from '../../components/Layout';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
@@ -6,6 +6,8 @@ import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Input, TextareaAutosize, TextField } from '@mui/material';
 import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 
 const AllProductQuery = gql`
   query {
@@ -20,17 +22,56 @@ const AllProductQuery = gql`
   }
 `;
 
+const CreateProductMutation = gql`
+  mutation CreateProduct($name: String!, $price: String!, $remarks: String) {
+    createProduct(name: $name, price: $price, remarks: $remarks) {
+      id
+      name
+      price
+      remarks
+    }
+  }
+`;
+
+const errorMessages = {
+  required: (attribute: string) => `${attribute}は必須項目です`,
+  max: (attribute: string, max: number) =>
+    `${attribute}は${max}文字以下で入力してください`,
+};
+const validationSchema = yup.object({
+  name: yup
+    .string()
+    .required(errorMessages.required('name'))
+    .max(100, errorMessages.max('price', 100)),
+  price: yup
+    .string()
+    .required(errorMessages.required('price'))
+    .max(50, errorMessages.max('price', 50)),
+  remarks: yup.string().max(30000, errorMessages.max('remarks', 30000)),
+});
+
 const GraphQL: NextPage = () => {
-  const { register, handleSubmit } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors: addProductValidateErrors },
+    reset,
+  } = useForm({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     defaultValues: {},
     criteriaMode: 'firstError',
     shouldFocusError: true,
     delayError: undefined,
+    resolver: yupResolver(validationSchema),
   });
   const { data: products, loading: productsLoading } =
     useQuery(AllProductQuery);
+
+  const [createProduct, { error: addProductError }] = useMutation(
+    CreateProductMutation,
+    { refetchQueries: [AllProductQuery] }
+  );
 
   const [innerWidth, updateInnerWidth] = useState(0);
 
@@ -102,7 +143,15 @@ const GraphQL: NextPage = () => {
     };
   });
 
-  const addProduct = async () => {};
+  const addProduct = async (_data: any) => {
+    console.log(_data);
+
+    const { name, price, remarks } = _data;
+    if ([name, price, remarks].some((value) => typeof value === 'undefined')) {
+      return;
+    }
+    await createProduct({ variables: { name, price, remarks } });
+  };
 
   console.log('products: ', products);
   return (
@@ -110,13 +159,15 @@ const GraphQL: NextPage = () => {
       <Layout>
         <h2>CREATE</h2>
         <div style={{ height: 400, width: '80vw' }}>
-          <form onSubmit={handleSubmit(addProduct)}>
+          <form>
             <TextField
               label='name'
               variant='outlined'
               sx={{ width: 1, marginBottom: 1 }}
               {...register('name' as never, { max: 100 })}
               required
+              error={'name' in addProductValidateErrors}
+              helperText={(addProductValidateErrors as any).name?.message}
             ></TextField>
             <TextField
               label='price'
@@ -124,16 +175,24 @@ const GraphQL: NextPage = () => {
               sx={{ width: 1, marginBottom: 1 }}
               {...register('price' as never, { max: 50 })}
               required
+              error={'price' in addProductValidateErrors}
+              helperText={(addProductValidateErrors as any).price?.message}
             ></TextField>
             <TextField
-              label='price'
+              label='remarks'
               variant='outlined'
               multiline
               rows={5}
               sx={{ width: 1, marginBottom: 1 }}
-              {...register('price' as never, { max: 30000 })}
+              {...register('remarks' as never, { max: 30000 })}
+              error={'remarks' in addProductValidateErrors}
+              helperText={(addProductValidateErrors as any).remarks?.message}
             ></TextField>
-            <Button sx={{ float: 'right' }} variant='contained'>
+            <Button
+              sx={{ float: 'right' }}
+              variant='contained'
+              onClick={handleSubmit(addProduct)}
+            >
               ADD
             </Button>
           </form>

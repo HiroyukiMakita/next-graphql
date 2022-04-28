@@ -1,4 +1,5 @@
-import { objectType, extendType } from 'nexus';
+import { Context } from '@apollo/client/react/types/types';
+import { objectType, extendType, nonNull, stringArg, nullable } from 'nexus';
 
 export const Product = objectType({
   name: 'Product',
@@ -19,6 +20,29 @@ export const ProductsQuery = extendType({
       type: 'Product',
       resolve(_parent: any, _args: any, ctx: any) {
         return ctx.prisma.product.findMany();
+      },
+    });
+  },
+});
+
+export const CreateProduct = extendType({
+  type: 'Mutation',
+  definition(t) {
+    t.nullable.field('createProduct', {
+      type: Product,
+      args: {
+        name: nonNull(stringArg()),
+        price: nonNull(stringArg()),
+        remarks: nullable(stringArg()),
+      },
+      resolve(_parent: any, args: any, ctx: Context) {
+        return ctx.prisma.product.create({
+          data: {
+            name: args.name,
+            price: args.price,
+            remarks: args.remarks,
+          },
+        });
       },
     });
   },

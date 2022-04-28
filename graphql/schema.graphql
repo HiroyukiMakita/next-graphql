@@ -12,6 +12,10 @@ A date string, such as 2007-12-03, compliant with the `full-date` format outline
 """
 scalar Date
 
+type Mutation {
+  createProduct(name: String!, price: String!, remarks: String): Product
+}
+
 type Product {
   createdAt: String!
   id: BigInt!
