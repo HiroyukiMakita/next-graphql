@@ -4,6 +4,8 @@ import { Layout } from '../../components/Layout';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Input, TextareaAutosize, TextField } from '@mui/material';
+import { useForm } from 'react-hook-form';
 
 const AllProductQuery = gql`
   query {
@@ -19,6 +21,14 @@ const AllProductQuery = gql`
 `;
 
 const GraphQL: NextPage = () => {
+  const { register, handleSubmit } = useForm({
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    defaultValues: {},
+    criteriaMode: 'firstError',
+    shouldFocusError: true,
+    delayError: undefined,
+  });
   const { data: products, loading: productsLoading } =
     useQuery(AllProductQuery);
 
@@ -92,10 +102,42 @@ const GraphQL: NextPage = () => {
     };
   });
 
+  const addProduct = async () => {};
+
   console.log('products: ', products);
   return (
     <>
       <Layout>
+        <h2>CREATE</h2>
+        <div style={{ height: 400, width: '80vw' }}>
+          <form onSubmit={handleSubmit(addProduct)}>
+            <TextField
+              label='name'
+              variant='outlined'
+              sx={{ width: 1, marginBottom: 1 }}
+              {...register('name' as never, { max: 100 })}
+              required
+            ></TextField>
+            <TextField
+              label='price'
+              variant='outlined'
+              sx={{ width: 1, marginBottom: 1 }}
+              {...register('price' as never, { max: 50 })}
+              required
+            ></TextField>
+            <TextField
+              label='price'
+              variant='outlined'
+              multiline
+              rows={5}
+              sx={{ width: 1, marginBottom: 1 }}
+              {...register('price' as never, { max: 30000 })}
+            ></TextField>
+            <Button sx={{ float: 'right' }} variant='contained'>
+              ADD
+            </Button>
+          </form>
+        </div>
         <h2>READ</h2>
         <div style={{ height: 400, width: '80vw' }}>
           <DataGrid
