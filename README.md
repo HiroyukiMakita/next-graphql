@@ -1,34 +1,131 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# next-graphql
 
-## Getting Started
+This repository is GraphQL example using below libraries.
 
-First, run the development server:
+- [Next.js](https://nextjs.org/) (React flamework)
+- [Material-UI](https://mui.com/material-ui/getting-started/installation/) (UI library)
+- [Prisma](https://www.prisma.io/) (ORM for Next.js and TypeScript)
+- [Nexus](https://nexusjs.org/) (GraphQL API libraries for JS/TS)
+- [MariaDB](https://mariadb.org/) (Database provide on Docker)
 
-```bash
-npm run dev
-# or
-yarn dev
+# Getting started
+
+### 1. Please clone this repository
+
+### 2. Open repository, Change Directory at `docker/`, and create .env from copy .env.example.
+
+And customise `.env` for your settings.
+
+```
+$ cd docker
+$ cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Start up Database on Docker using below command
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+```
+$ make
+```
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Then you will be able to show PHPMyAdmin at [http://localhost:8888](http://localhost:8888)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### 4. Start up Next.js server using below command
 
-## Learn More
+```
+# yarn
+$ yarn dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then you will be able to show Next.js Application at [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# History of How to Prisma setting and test data seeding.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+(I used yarn commands.)
 
-## Deploy on Vercel
+Prisma install and run initialize.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+$ yarn add prisma
+$ yarn prisma init
+# be created .env and prisma/
+# customised setting of DB for .env and prisma/schema.prisma
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Add define of model in `prisma/schema.prisma`
+
+```
+
+model Product {
+id BigInt @id @default(autoincrement())
+name String @db.VarChar(100)
+price String @db.VarChar(50)
+remarks String? @db.Text
+createdAt DateTime @default(now()) @map(name: "created_at")
+updatedAt DateTime @updatedAt @map(name: "updated_at")
+
+@@map(name: "products")
+}
+```
+
+Run migration using below command.
+
+```
+$ yarn prisma migrate dev
+```
+
+Create only once Prisma client at lib/prisma.ts.
+
+```
+/**
+ * Next.jsを使用してPrismaClientをインスタンス化するためのベストプラクティス
+ * https://www.prisma.io/docs/support/help-articles/nextjs-prisma-client-dev-practices
+ */
+
+import { PrismaClient } from '@prisma/client';
+
+declare global {
+  var prisma: PrismaClient | undefined;
+}
+
+export const prisma =
+  global.prisma ||
+  new PrismaClient({
+    log: ['query'],
+  });
+
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+```
+
+Create seeder at prisma/seed.ts.
+
+```
+import { prisma } from '../lib/prisma';
+import { faker } from '@faker-js/faker';
+
+const main = async () => {
+  await prisma.product.createMany({
+    data: [...Array(10)].map((_) => {
+      return {
+        name: faker.name.findName(),
+        price: String(faker.datatype.number({ min: 99, max: 99999 })),
+        remarks: faker.random.words(),
+      };
+    }),
+  });
+};
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+And run seeder use below command.
+
+```
+$ yarn prisma db seed
+```
