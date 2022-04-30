@@ -10,6 +10,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import UpdateProductModal from '../../components/product/UpdateProductModal';
 import { AppContext } from '../_app';
+import toast from 'react-hot-toast';
 
 const AllProductQuery = gql`
   query {
@@ -215,12 +216,15 @@ const GraphQL: NextPage = () => {
     setLoading(true);
     try {
       await createProduct({ variables: { name, price, remarks } });
+      reset();
+      toast.success('add product success!');
     } catch (e) {
+      toast.error('add product error...');
+      console.log('add product error... ', e);
       throw e;
     } finally {
       setLoading(false);
     }
-    reset();
   };
 
   console.log('products: ', products);
