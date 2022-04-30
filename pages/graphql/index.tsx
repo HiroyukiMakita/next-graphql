@@ -3,12 +3,13 @@ import type { NextPage } from 'next';
 import { Layout } from '../../components/Layout';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Button, TextField } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import UpdateProductModal from '../../components/product/UpdateProductModal';
+import { AppContext } from '../_app';
 
 const AllProductQuery = gql`
   query {
@@ -81,6 +82,8 @@ const validationSchema = yup.object({
 });
 
 const GraphQL: NextPage = () => {
+  const { loading, setLoading } = useContext(AppContext);
+
   /**
    * UpdateProductModal の参照を保持（UpdateProductModal 関数を使える）
    *
@@ -209,7 +212,14 @@ const GraphQL: NextPage = () => {
     if ([name, price, remarks].some((value) => typeof value === 'undefined')) {
       return;
     }
-    await createProduct({ variables: { name, price, remarks } });
+    setLoading(true);
+    try {
+      await createProduct({ variables: { name, price, remarks } });
+    } catch (e) {
+      throw e;
+    } finally {
+      setLoading(false);
+    }
     reset();
   };
 
