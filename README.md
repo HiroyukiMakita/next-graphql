@@ -54,7 +54,6 @@ $ yarn prisma init
 Add define of model in `prisma/schema.prisma`
 
 ```
-
 model Product {
 id BigInt @id @default(autoincrement())
 name String @db.VarChar(100)
@@ -77,7 +76,6 @@ Create only once Prisma client at lib/prisma.ts.
 
 ```
 /**
- * Next.jsを使用してPrismaClientをインスタンス化するためのベストプラクティス
  * https://www.prisma.io/docs/support/help-articles/nextjs-prisma-client-dev-practices
  */
 
