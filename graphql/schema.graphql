@@ -14,6 +14,7 @@ scalar Date
 
 type Mutation {
   createProduct(name: String!, price: String!, remarks: String): Product
+  deleteProduct(id: BigInt!): Product
   updateProduct(id: BigInt!, name: String!, price: String!, remarks: String): Product
 }
 

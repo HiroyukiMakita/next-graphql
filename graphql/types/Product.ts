@@ -24,7 +24,7 @@ export const ProductsQuery = extendType({
   type: 'Query',
   definition(t) {
     t.nonNull.list.field('products', {
-      type: 'Product',
+      type: Product,
       resolve(_parent: any, _args: any, ctx: any) {
         return ctx.prisma.product.findMany();
       },
@@ -36,7 +36,7 @@ export const ProductFindByIdQuery = extendType({
   type: 'Query',
   definition(t) {
     t.field('productFindById', {
-      type: 'Product',
+      type: Product,
       args: {
         id: nonNull(arg({ type: 'BigInt' })),
       },
@@ -94,6 +94,25 @@ export const UpdateProduct = extendType({
             name: args.name,
             price: args.price,
             remarks: args.remarks,
+          },
+        });
+      },
+    });
+  },
+});
+
+export const DeleteProductMutation = extendType({
+  type: 'Mutation',
+  definition(t) {
+    t.nullable.field('deleteProduct', {
+      type: Product,
+      args: {
+        id: nonNull(arg({ type: 'BigInt' })),
+      },
+      resolve(_parent: any, args: any, ctx: Context) {
+        return ctx.prisma.product.delete({
+          where: {
+            id: args.id,
           },
         });
       },

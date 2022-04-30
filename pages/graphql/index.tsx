@@ -25,19 +25,6 @@ const AllProductQuery = gql`
   }
 `;
 
-const ProductFindByIdQuery = gql`
-  query productFindById($id: BigInt!) {
-    productFindById(id: $id) {
-      id
-      name
-      price
-      remarks
-      updatedAt
-      createdAt
-    }
-  }
-`;
-
 const CreateProductMutation = gql`
   mutation CreateProduct($name: String!, $price: String!, $remarks: String) {
     createProduct(name: $name, price: $price, remarks: $remarks) {
@@ -49,14 +36,9 @@ const CreateProductMutation = gql`
   }
 `;
 
-const UpdateProductMutation = gql`
-  mutation UpdateProduct(
-    $id: BigInt!
-    $name: String!
-    $price: String!
-    $remarks: String
-  ) {
-    updateProduct(id: $id, name: $name, price: $price, remarks: $remarks) {
+const DeleteProductMutation = gql`
+  mutation DeleteProduct($id: BigInt!) {
+    deleteProduct(id: $id) {
       id
       name
       price
@@ -116,6 +98,11 @@ const GraphQL: NextPage = () => {
 
   const [createProduct, { error: addProductError }] = useMutation(
     CreateProductMutation,
+    { refetchQueries: [AllProductQuery] }
+  );
+
+  const [deleteProduct, { error: deleteProductError }] = useMutation(
+    DeleteProductMutation,
     { refetchQueries: [AllProductQuery] }
   );
 
@@ -189,6 +176,22 @@ const GraphQL: NextPage = () => {
         </Button>
       ),
     },
+    {
+      field: 'deleteButton',
+      headerName: 'delete',
+      description: 'delete product',
+      sortable: false,
+      width: innerWidth / 7,
+      renderCell: (params: GridValueGetterParams) => (
+        <Button
+          variant='contained'
+          color='error'
+          onClick={() => runDeleteProduct(params.row.id)}
+        >
+          DELETE
+        </Button>
+      ),
+    },
   ];
 
   if (productsLoading) {
@@ -227,7 +230,19 @@ const GraphQL: NextPage = () => {
     }
   };
 
-  console.log('products: ', products);
+  const runDeleteProduct = async (productId: BigInt) => {
+    try {
+      setLoading(true);
+      await deleteProduct({ variables: { id: productId } });
+      toast.success('delete product success!');
+    } catch (e) {
+      toast.error('delete product error...');
+      console.log('delete product error... ', e);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
