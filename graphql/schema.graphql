@@ -14,6 +14,7 @@ scalar Date
 
 type Mutation {
   createProduct(name: String!, price: String!, remarks: String): Product
+  updateProduct(id: BigInt!, name: String!, price: String!, remarks: String): Product
 }
 
 type Product {
@@ -26,5 +27,6 @@ type Product {
 }
 
 type Query {
+  productFindById(id: BigInt!): Product
   products: [Product]!
 }
