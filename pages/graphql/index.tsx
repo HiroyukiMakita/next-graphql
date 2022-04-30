@@ -1,22 +1,14 @@
-import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 import type { NextPage } from 'next';
 import { Layout } from '../../components/Layout';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Button,
-  Input,
-  Modal,
-  TextareaAutosize,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
+import { Button, TextField } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { consoleWarn } from 'nexus/dist/utils';
+import UpdateProductModal from '../../components/product/UpdateProductModal';
 
 const AllProductQuery = gql`
   query {
@@ -89,6 +81,17 @@ const validationSchema = yup.object({
 });
 
 const GraphQL: NextPage = () => {
+  /**
+   * UpdateProductModal の参照を保持（UpdateProductModal 関数を使える）
+   *
+   * useRef === .cuurent に参照を保持できる hook
+   * useRefは値を保持することが可能
+   * useStateとの違いは値を更新してもコンポーネントの再描写を行わない
+   */
+  const refUpdateProductModal = useRef<{
+    handleOpen: (productId: BigInt) => Promise<void>;
+  }>() as any;
+
   const {
     register,
     handleSubmit,
@@ -103,84 +106,14 @@ const GraphQL: NextPage = () => {
     delayError: undefined,
     resolver: yupResolver(validationSchema),
   });
-  const {
-    register: updateRegister,
-    handleSubmit: updateHandleSubmit,
-    formState: { errors: updateProductValidateErrors },
-    reset: resetUpdateForm,
-  } = useForm({
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-    defaultValues: {},
-    criteriaMode: 'firstError',
-    shouldFocusError: true,
-    delayError: undefined,
-    resolver: yupResolver(validationSchema),
-  });
+
   const { data: products, loading: productsLoading } =
     useQuery(AllProductQuery);
-
-  const [
-    productFindById,
-    { data: productUpdateTarget, loading: productFindByIdLoading },
-  ] = useLazyQuery(ProductFindByIdQuery);
 
   const [createProduct, { error: addProductError }] = useMutation(
     CreateProductMutation,
     { refetchQueries: [AllProductQuery] }
   );
-
-  const [updateProductMutation, { error: updateProductError }] = useMutation(
-    UpdateProductMutation,
-    { refetchQueries: [AllProductQuery] }
-  );
-
-  const [open, setOpen] = useState(false);
-  const [productUpdateFormData, setProductUpdateFormData] = useState({
-    id: 0,
-    name: '',
-    price: '',
-    remarks: '',
-  });
-
-  const resetProductUpdateFormData = () =>
-    setProductUpdateFormData({
-      id: 0,
-      name: '',
-      price: '',
-      remarks: '',
-    });
-
-  const handleOpen = async (productId: BigInt) => {
-    console.log('productId: ', productId);
-    const product = await productFindById({ variables: { id: productId } });
-    console.log('productUpdateTarget: ', product);
-    const updateTarget = product?.data?.productFindById;
-    if (typeof updateTarget !== 'undefined') {
-      const { id, name, price, remarks } = updateTarget;
-      setProductUpdateFormData({
-        id,
-        name,
-        price,
-        remarks,
-      });
-    }
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const updateProduct = async (_data: any) => {
-    console.log(_data);
-
-    const { id, name, price, remarks } = _data;
-    if ([name, price, remarks].some((value) => typeof value === 'undefined')) {
-      return;
-    }
-    await updateProductMutation({ variables: { id, name, price, remarks } });
-  };
 
   const [innerWidth, updateInnerWidth] = useState(0);
 
@@ -242,7 +175,12 @@ const GraphQL: NextPage = () => {
       sortable: false,
       width: innerWidth / 7,
       renderCell: (params: GridValueGetterParams) => (
-        <Button variant='contained' onClick={() => handleOpen(params.row.id)}>
+        <Button
+          variant='contained'
+          onClick={() =>
+            refUpdateProductModal.current?.handleOpen(params.row.id)
+          }
+        >
           UPDATE
         </Button>
       ),
@@ -272,21 +210,10 @@ const GraphQL: NextPage = () => {
       return;
     }
     await createProduct({ variables: { name, price, remarks } });
+    reset();
   };
 
   console.log('products: ', products);
-
-  /**
-   * ステートの値を value にセットしてるから、この関数を使わないとフォームの値を変更できない
-   * ・onChange イベントで、変わったフォームの name と value を取得
-   * ・変わったフォームの name と value を使ってステートの値を更新
-   * @param event
-   */
-  const updateHandleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const changeObj = {} as any;
-    changeObj[event.target.name] = event.target.value;
-    setProductUpdateFormData({ ...productUpdateFormData, ...changeObj });
-  };
 
   return (
     <>
@@ -341,88 +268,11 @@ const GraphQL: NextPage = () => {
           />
         </div>
 
-        <Modal
-          open={open}
-          onClose={handleClose}
-          aria-labelledby='modal-modal-title'
-          aria-describedby='modal-modal-description'
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: 'white',
-              width: 2 / 3,
-              height: 'auto',
-              margin: 'auto',
-              padding: 10,
-              borderRadius: 3,
-            }}
-          >
-            <Typography id='modal-modal-title' variant='h6' component='h2'>
-              UPDATE
-            </Typography>
-            <Typography id='modal-modal-description' sx={{ mt: 2 }}>
-              <form>
-                <Input
-                  type='hidden'
-                  {...updateRegister('id' as never)}
-                  value={productUpdateFormData.id}
-                ></Input>
-                <TextField
-                  label='name'
-                  variant='outlined'
-                  value={productUpdateFormData.name}
-                  sx={{ width: 1, marginBottom: 1 }}
-                  {...updateRegister('name' as never, { max: 100 })}
-                  required
-                  error={'name' in updateProductValidateErrors}
-                  helperText={
-                    (updateProductValidateErrors as any).name?.message
-                  }
-                  onChange={updateHandleChange}
-                ></TextField>
-                <TextField
-                  label='price'
-                  variant='outlined'
-                  value={productUpdateFormData.price}
-                  sx={{ width: 1, marginBottom: 1 }}
-                  {...updateRegister('price' as never, { max: 50 })}
-                  required
-                  error={'price' in updateProductValidateErrors}
-                  helperText={
-                    (updateProductValidateErrors as any).price?.message
-                  }
-                  onChange={updateHandleChange}
-                ></TextField>
-                <TextField
-                  label='remarks'
-                  variant='outlined'
-                  value={productUpdateFormData.remarks}
-                  multiline
-                  rows={5}
-                  sx={{ width: 1, marginBottom: 1 }}
-                  {...updateRegister('remarks' as never, { max: 30000 })}
-                  error={'remarks' in updateProductValidateErrors}
-                  helperText={
-                    (updateProductValidateErrors as any).remarks?.message
-                  }
-                  onChange={updateHandleChange}
-                ></TextField>
-                <Button
-                  sx={{ float: 'right' }}
-                  variant='contained'
-                  onClick={updateHandleSubmit(updateProduct)}
-                >
-                  UPDATE
-                </Button>
-              </form>
-            </Typography>
-          </Box>
-        </Modal>
+        <UpdateProductModal
+          AllProductQuery={AllProductQuery}
+          validationSchema={validationSchema}
+          ref={refUpdateProductModal}
+        />
       </Layout>
     </>
   );
