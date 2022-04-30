@@ -1,5 +1,5 @@
 import { DocumentNode, gql, useLazyQuery, useMutation } from '@apollo/client';
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useContext, useImperativeHandle, useState } from 'react';
 import {
   Box,
   Button,
@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import toast from 'react-hot-toast';
+import { AppContext } from '../../pages/_app';
 
 const ProductFindByIdQuery = gql`
   query productFindById($id: BigInt!) {
@@ -49,6 +51,8 @@ const UpdateProductModal: React.ForwardRefRenderFunction<
     validationSchema: any;
   }
 > = ({ AllProductQuery, validationSchema }, ref) => {
+  const { loading, setLoading } = useContext(AppContext);
+
   const {
     register: updateRegister,
     handleSubmit: updateHandleSubmit,
@@ -124,7 +128,20 @@ const UpdateProductModal: React.ForwardRefRenderFunction<
     if ([name, price, remarks].some((value) => typeof value === 'undefined')) {
       return;
     }
-    await updateProductMutation({ variables: { id, name, price, remarks } });
+
+    try {
+      setLoading(true);
+      await updateProductMutation({ variables: { id, name, price, remarks } });
+      resetUpdateForm();
+      toast.success('update product success!');
+      handleClose();
+    } catch (e) {
+      toast.error('update product error...');
+      console.log('update product error... ', e);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -149,6 +166,7 @@ const UpdateProductModal: React.ForwardRefRenderFunction<
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        zIndex: 998,
       }}
     >
       <Box
@@ -164,7 +182,11 @@ const UpdateProductModal: React.ForwardRefRenderFunction<
         <Typography id='modal-modal-title' variant='h6' component='h2'>
           UPDATE
         </Typography>
-        <Typography id='modal-modal-description' sx={{ mt: 2 }}>
+        <Typography
+          id='modal-modal-description'
+          sx={{ mt: 2 }}
+          component={'span'}
+        >
           <form>
             <Input
               type='hidden'

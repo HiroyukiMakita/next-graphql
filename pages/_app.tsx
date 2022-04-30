@@ -25,18 +25,39 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      {/* 各コンポーネントからApolloClientを使用してGraphQLクエリを送ることができるようになる */}
-      <ApolloProvider client={apolloClient}>
-        <AppContext.Provider value={{ loading, setLoading }}>
-          <LoadingOverlay active={loading} spinner text='Now Loading...'>
+      <LoadingOverlay
+        active={loading}
+        spinner
+        text='Now Loading...'
+        /**
+         * モーダルよりローディング表示を上に表示するため、z-index を設定する
+         */
+        styles={{
+          overlay: (base) => ({
+            ...base,
+            zIndex: 999,
+          }),
+          content: (base) => ({
+            ...base,
+            zIndex: 999,
+          }),
+          spinner: (base) => ({
+            ...base,
+            zIndex: 999,
+          }),
+        }}
+      >
+        {/* 各コンポーネントからApolloClientを使用してGraphQLクエリを送ることができるようになる */}
+        <ApolloProvider client={apolloClient}>
+          <AppContext.Provider value={{ loading, setLoading }}>
             <Component {...pageProps} />
             {/* react-toastify を使いたかったけどうまく表示されなかった。
             別のプロジェクトでは普通に使えたので謎。
             代わりに react-hot-toast を使用 */}
             <Toaster />
-          </LoadingOverlay>
-        </AppContext.Provider>
-      </ApolloProvider>
+          </AppContext.Provider>
+        </ApolloProvider>
+      </LoadingOverlay>
     </>
   );
 }
